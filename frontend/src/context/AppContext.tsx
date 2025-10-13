@@ -6,6 +6,7 @@ import masalaDosa from '../assets/masala-dosa.jpg';
 import palakPaneer from '../assets/palak-paneer.jpg';
 import rajmaChawal from '../assets/rajma-chawal.jpg';
 import.meta.env
+import { apiFetch } from '../lib/api';
 
 // User type
 interface User {
@@ -56,6 +57,17 @@ interface AppState {
   menuItems: MenuItem[];
   cart: CartItem[];
   cartCount: number;
+}
+//login response type
+interface LoginResponse {
+  success: boolean;
+  message: string;
+  user: {
+    cust_id: string;
+    name: string;
+    email: string;
+    password: string;
+  }
 }
 
 // Context type
@@ -284,70 +296,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   //   return false;
   // };
 
-  // Replace the existing login implementation with this async version
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const BASE = 'http://localhost:8080';
-      const AUTH_URL = `${BASE}/user-login`;
-  
-      const res = await fetch(AUTH_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // keep if your backend uses cookies
-        body: JSON.stringify({
-          // match typical backends; adjust if your API uses different keys
-          email: email.trim().toLowerCase(),
-          password,
-        }),
-      });
-  
-      if (!res.ok) {
-        // Optional: read server message for debugging
-        try { console.error('Login failed:', await res.json()); } catch {}
-        return false;
-      }
-  
-      const data = await res.json();
-  
-      // Accept several shapes:
-      // 1) { success: true, customer: { cust_id, name, email }, token? }
-      // 2) { cust_id, name, email, token? }
-      // 3) { data: { ...same as above... } }
-      // 4) [{ cust_id, name, email }]  // e.g., SELECT result
-      const container = data?.data ?? data;
-  
-      const candidate =
-        container?.customer ??
-        (Array.isArray(container) ? container[0] : container);
-  
-      const custId = candidate?.cust_id ?? candidate?.id ?? candidate?.user_id;
-      const custEmail = candidate?.email ?? candidate?.email_id;
-      const custName = candidate?.name ?? candidate?.fullName ?? candidate?.username ?? custEmail;
-  
-      if (!custId || !custEmail) {
-        console.error('Unexpected login response shape:', data);
-        return false;
-      }
-  
-      if (container?.token) {
-        localStorage.setItem('auth_token', container.token);
-      }
-  
-      setState(prev => ({
-        ...prev,
-        user: {
-          id: String(custId),
-          name: custName,
-          email: String(custEmail),
-        },
-      }));
-  
-      return true;
-    } catch (err) {
-      console.error('Login error:', err);
-      return false;
+
+const login = async (email: string, password: string): Promise<boolean> => {
+  try {
+    const response = await fetch('http://localhost:8080/user-login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data: LoginResponse = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.message || 'Login failed');
     }
-  };
+
+    const user: User = {
+      id: data.user.cust_id,
+      name: data.user.name,
+      email: data.user.email
+    };
+
+    setState(prev => ({ ...prev, user }));
+    return true;
+  } catch (error) {
+    console.error('Login error:', error);
+    return false;
+  }
+};
 
   const logout = () => {
     setState(prev => ({ ...prev, user: null, accountDetails: null, cart: [], cartCount: 0 }));
