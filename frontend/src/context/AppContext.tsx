@@ -70,20 +70,6 @@ interface LoginResponse {
   }
 }
 
-// Context type
-// interface AppContextType {
-//   state: AppState;
-//   login: (email: string, password: string) => boolean;
-//   logout: () => void;
-//   setAccountDetails: (details: AccountDetails) => void;
-//   createAccount: () => boolean;
-//   addToCart: (item: MenuItem) => void;
-//   decreaseQuantity: (itemId: string) => void;
-//   removeFromCart: (itemId: string) => void;
-//   clearCart: () => void;
-//   placeOrder: () => void;
-// }
-// Replace the AppContextType definition to make login async
 interface AppContextType {
   state: AppState;
   login: (email: string, password: string) => Promise<boolean>;
@@ -215,20 +201,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     cartCount: 0
   });
 
-  // const login = (email: string, password: string): boolean => {
-  //   // Simple dummy authentication
-  //   if (email && password) {
-  //     const user: User = {
-  //       id: '1',
-  //       name: 'Jitesh Mittal',
-  //       email: email
-  //     };
-  //     setState(prev => ({ ...prev, user }));
-  //     return true;
-  //   }
-  //   return false;
-  // };
-
   useEffect(() => {
     const API_URL = `http://localhost:8080/Food_items` ;  // this is where the api link will go 
 
@@ -260,41 +232,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     loadMenu();
   }, []);
-
-  // const login = (email: string, password: string): boolean => {
-  //   // Simple dummy authentication
-  //   if (email && password) {
-  //     const user: User = {
-  //       id: '1',
-  //       name: 'Jitesh Mittal',
-  //       email: email
-  //     };
-  //     setState(prev => ({ ...prev, user }));
-  //     return true;
-  //   }
-  //   return false;
-  // };
-  
-
-  // const login = (email: string, password: string): boolean => {
-  //   const VALID_USERS: Record<string, { password: string; name: string; id: string }> = {
-  //     'demo@catertrack.com':    { password: 'user123',  name: 'Jitesh Mittal', id: '1' },
-  //   };
-
-  //   const key = email.trim().toLowerCase();
-  //   const creds = VALID_USERS[key];
-
-  //   if (creds && password === creds.password) {
-  //     const user: User = {
-  //       id: creds.id,
-  //       name: creds.name,
-  //       email: email.trim(),
-  //     };
-  //     setState(prev => ({ ...prev, user }));
-  //     return true;
-  //   }
-  //   return false;
-  // };
 
 
 const login = async (email: string, password: string): Promise<boolean> => {

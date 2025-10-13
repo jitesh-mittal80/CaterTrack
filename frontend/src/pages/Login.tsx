@@ -19,37 +19,6 @@ const Login = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setIsLoading(true);
-
-  //   try {
-  //     const success = login(email, password);
-  //     if (success) {
-  //       toast({
-  //         title: "Welcome to NsutCater!",
-  //         description: "You have been successfully logged in.",
-  //       });
-  //       navigate('/dashboard');
-  //     } else {
-  //       toast({
-  //         title: "Login Failed",
-  //         description: "Please enter valid credentials.",
-  //         variant: "destructive",
-  //       });
-  //     }
-  //   } catch (error) {
-  //     toast({
-  //       title: "Error",
-  //       description: "An error occurred during login.",
-  //       variant: "destructive",
-  //     });
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-  // In handleSubmit, change the login call to await
-   // In handleSubmit, change the login call to await
    const handleSubmit = async (e: React.FormEvent) => {
    e.preventDefault();
    setIsLoading(true);
