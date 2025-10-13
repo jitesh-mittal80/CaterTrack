@@ -215,11 +215,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const data = await res.json();
         //will try
         const mapped = (Array.isArray(data) ? data : []).map((row: any) => ({
-          id: String(row.item_id),
-          name: row.item_name,
+          id: String(row.food_id),
+          name: row.food_name,
           price: Number(row.price),
           rating: Number(row.rating ?? 0),
-          image: row.food_image || '/placeholder.svg',
+          image: row.Img || '/placeholder.svg',
           category: 'General'
         }));
         // will try end here 
@@ -237,13 +237,33 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     loadMenu();
   }, []);
 
+  // const login = (email: string, password: string): boolean => {
+  //   // Simple dummy authentication
+  //   if (email && password) {
+  //     const user: User = {
+  //       id: '1',
+  //       name: 'Jitesh Mittal',
+  //       email: email
+  //     };
+  //     setState(prev => ({ ...prev, user }));
+  //     return true;
+  //   }
+  //   return false;
+  // };
+
   const login = (email: string, password: string): boolean => {
-    // Simple dummy authentication
-    if (email && password) {
+    const VALID_USERS: Record<string, { password: string; name: string; id: string }> = {
+      'demo@catertrack.com':    { password: 'user123',  name: 'Jitesh Mittal', id: '1' },
+    };
+
+    const key = email.trim().toLowerCase();
+    const creds = VALID_USERS[key];
+
+    if (creds && password === creds.password) {
       const user: User = {
-        id: '1',
-        name: 'Jitesh Mittal',
-        email: email
+        id: creds.id,
+        name: creds.name,
+        email: email.trim(),
       };
       setState(prev => ({ ...prev, user }));
       return true;

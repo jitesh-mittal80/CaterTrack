@@ -96,8 +96,9 @@ const Login = () => {
 
           <div className="mt-4 p-3 bg-muted rounded-md">
             <p className="text-xs text-muted-foreground">
-              Demo: Use any email and password to login
-            </p>
+              Demo: demo@catertrack.com / user123
+
+          </p>
           </div>
 
           <div className="mt-4 text-center">
