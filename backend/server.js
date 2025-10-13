@@ -1,5 +1,4 @@
 // server.js
-
 import express from "express";
 import cors from "cors";
 import db from "./db.js";
@@ -24,6 +23,29 @@ app.get("/Food_items", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// Endpoint for user login
+
+app.post("/user-login", async (req, res) => {
+  const { email, password } = req.body;
+  console.log(email+password);
+
+  try {
+    const [results] = await db.query(
+      "SELECT * FROM users WHERE email = ? AND password = ?",
+      [email, password]
+    );
+
+    if (results.length > 0) {
+      res.json({ success: true, message: "Login successful", user: results[0] });
+    } else {
+      res.status(401).json({ success: false, message: "Invalid email or password" });
+    }
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));

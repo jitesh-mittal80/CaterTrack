@@ -250,6 +250,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   //   }
   //   return false;
   // };
+  
 
   const login = (email: string, password: string): boolean => {
     const VALID_USERS: Record<string, { password: string; name: string; id: string }> = {
