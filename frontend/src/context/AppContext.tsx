@@ -59,9 +59,22 @@ interface AppState {
 }
 
 // Context type
+// interface AppContextType {
+//   state: AppState;
+//   login: (email: string, password: string) => boolean;
+//   logout: () => void;
+//   setAccountDetails: (details: AccountDetails) => void;
+//   createAccount: () => boolean;
+//   addToCart: (item: MenuItem) => void;
+//   decreaseQuantity: (itemId: string) => void;
+//   removeFromCart: (itemId: string) => void;
+//   clearCart: () => void;
+//   placeOrder: () => void;
+// }
+// Replace the AppContextType definition to make login async
 interface AppContextType {
   state: AppState;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   setAccountDetails: (details: AccountDetails) => void;
   createAccount: () => boolean;
@@ -71,7 +84,6 @@ interface AppContextType {
   clearCart: () => void;
   placeOrder: () => void;
 }
-
 // Dummy data
 const dummyMenuItems: MenuItem[] = [
   {
@@ -252,24 +264,89 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // };
   
 
-  const login = (email: string, password: string): boolean => {
-    const VALID_USERS: Record<string, { password: string; name: string; id: string }> = {
-      'demo@catertrack.com':    { password: 'user123',  name: 'Jitesh Mittal', id: '1' },
-    };
+  // const login = (email: string, password: string): boolean => {
+  //   const VALID_USERS: Record<string, { password: string; name: string; id: string }> = {
+  //     'demo@catertrack.com':    { password: 'user123',  name: 'Jitesh Mittal', id: '1' },
+  //   };
 
-    const key = email.trim().toLowerCase();
-    const creds = VALID_USERS[key];
+  //   const key = email.trim().toLowerCase();
+  //   const creds = VALID_USERS[key];
 
-    if (creds && password === creds.password) {
-      const user: User = {
-        id: creds.id,
-        name: creds.name,
-        email: email.trim(),
-      };
-      setState(prev => ({ ...prev, user }));
+  //   if (creds && password === creds.password) {
+  //     const user: User = {
+  //       id: creds.id,
+  //       name: creds.name,
+  //       email: email.trim(),
+  //     };
+  //     setState(prev => ({ ...prev, user }));
+  //     return true;
+  //   }
+  //   return false;
+  // };
+
+  // Replace the existing login implementation with this async version
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
+      const AUTH_URL = import.meta.env.VITE_AUTH_LOGIN_URL || `${BASE}/user-login`;
+  
+      const res = await fetch(AUTH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // keep if your backend uses cookies
+        body: JSON.stringify({
+          // match typical backends; adjust if your API uses different keys
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      });
+  
+      if (!res.ok) {
+        // Optional: read server message for debugging
+        try { console.error('Login failed:', await res.json()); } catch {}
+        return false;
+      }
+  
+      const data = await res.json();
+  
+      // Accept several shapes:
+      // 1) { success: true, customer: { cust_id, name, email }, token? }
+      // 2) { cust_id, name, email, token? }
+      // 3) { data: { ...same as above... } }
+      // 4) [{ cust_id, name, email }]  // e.g., SELECT result
+      const container = data?.data ?? data;
+  
+      const candidate =
+        container?.customer ??
+        (Array.isArray(container) ? container[0] : container);
+  
+      const custId = candidate?.cust_id ?? candidate?.id ?? candidate?.user_id;
+      const custEmail = candidate?.email ?? candidate?.email_id;
+      const custName = candidate?.name ?? candidate?.fullName ?? candidate?.username ?? custEmail;
+  
+      if (!custId || !custEmail) {
+        console.error('Unexpected login response shape:', data);
+        return false;
+      }
+  
+      if (container?.token) {
+        localStorage.setItem('auth_token', container.token);
+      }
+  
+      setState(prev => ({
+        ...prev,
+        user: {
+          id: String(custId),
+          name: custName,
+          email: String(custEmail),
+        },
+      }));
+  
       return true;
+    } catch (err) {
+      console.error('Login error:', err);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
