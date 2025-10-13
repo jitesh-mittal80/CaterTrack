@@ -287,8 +287,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Replace the existing login implementation with this async version
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
-      const AUTH_URL = import.meta.env.VITE_AUTH_LOGIN_URL || `${BASE}/user-login`;
+      const BASE = 'http://localhost:8080';
+      const AUTH_URL = `${BASE}/user-login`;
   
       const res = await fetch(AUTH_URL, {
         method: 'POST',

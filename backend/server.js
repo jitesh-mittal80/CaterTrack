@@ -27,11 +27,9 @@ app.get("/Food_items", async (req, res) => {
 
 app.post("/user-login", async (req, res) => {
   const { email, password } = req.body;
-  console.log(email+password);
-
   try {
     const [results] = await db.query(
-      "SELECT * FROM users WHERE email = ? AND password = ?",
+      "SELECT * FROM customer WHERE email = ? AND password = ?",
       [email, password]
     );
 
@@ -41,7 +39,7 @@ app.post("/user-login", async (req, res) => {
       res.status(401).json({ success: false, message: "Invalid email or password" });
     }
   } catch (err) {
-    console.error("Database error:", err);
+    console.error("Database error:", err.sqlMessage || err.message);
     res.status(500).json({ error: "Database error" });
   }
 });
