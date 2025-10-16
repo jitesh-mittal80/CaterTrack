@@ -1,11 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import paneerTikka from '../assets/paneer-tikka.jpg';
-import vegBiryani from '../assets/veg-biryani.jpg';
-import choleBhature from '../assets/chole-bhature.jpg';
-import masalaDosa from '../assets/masala-dosa.jpg';
-import palakPaneer from '../assets/palak-paneer.jpg';
-import rajmaChawal from '../assets/rajma-chawal.jpg';
-import.meta.env
+const env = import.meta.env;
 import { apiFetch } from '../lib/api';
 
 // User type
@@ -82,63 +76,24 @@ interface AppContextType {
   clearCart: () => void;
   placeOrder: () => void;
 }
+
+interface OrderApiResponse {
+  order_id: number;
+  cust_id: string;
+  total_items: string;
+  items: string;
+  total_price: string;
+  order_time: string;
+  status: string;
+}
 // Dummy data
-const dummyMenuItems: MenuItem[] = [
-  {
-    id: '1',
-    name: 'Paneer Tikka Masala',
-    price: 250,
-    rating: 4.5,
-    image: paneerTikka,
-    category: 'North Indian'
-  },
-  {
-    id: '2', 
-    name: 'Vegetable Biryani',
-    price: 180,
-    rating: 4.7,
-    image: vegBiryani,
-    category: 'Rice'
-  },
-  {
-    id: '3',
-    name: 'Chole Bhature',
-    price: 120,
-    rating: 4.6,
-    image: choleBhature,
-    category: 'North Indian'
-  },
-  {
-    id: '4',
-    name: 'Masala Dosa',
-    price: 90,
-    rating: 4.3,
-    image: masalaDosa,
-    category: 'South Indian'
-  },
-  {
-    id: '5',
-    name: 'Palak Paneer with Roti',
-    price: 220,
-    rating: 4.4,
-    image: palakPaneer,
-    category: 'North Indian'
-  },
-  {
-    id: '6',
-    name: 'Rajma Chawal',
-    price: 140,
-    rating: 4.8,
-    image: rajmaChawal,
-    category: 'Comfort Food'
-  }
-];
+const dummyMenuItems: MenuItem[] = [];
 
 const dummyOrders: Order[] = [
   {
     id: '1',
     orderNumber: 'NSU001',
-    items: ['Paneer Tikka Masala', 'Vegetable Biryani', 'Masala Dosa'],
+    items: ['Paneer Tikka Masla', 'Vegetable Biryani', 'Masala Dosa'],
     itemCount: 3,
     price: 520,
     date: '2024-01-07',
@@ -187,10 +142,9 @@ const dummyOrders: Order[] = [
   }
 ];
 
-// Create context
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Provider component
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<AppState>({
     user: null,
@@ -202,14 +156,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   });
 
   useEffect(() => {
-    const API_URL = `http://localhost:8080/Food_items` ;  // this is where the api link will go 
-
+    const API_URL = env.VITE_menu_items_api || `http://localhost:8080/Food_items` ; 
     const loadMenu = async () => {
       try {
         const res = await fetch(API_URL, { headers: { 'Content-Type': 'application/json' } });
         if (!res.ok) throw new Error('Failed to fetch menu');
         const data = await res.json();
-        //will try
+
         const mapped = (Array.isArray(data) ? data : []).map((row: any) => ({
           id: String(row.food_id),
           name: row.food_name,
@@ -218,14 +171,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           image: row.Img || '/placeholder.svg',
           category: 'General'
         }));
-        // will try end here 
-
-        // Expecting: Array<{ id: string; name: string; price: number; rating: number; image: string; category: string; }>
-        // setState(prev => ({ ...prev, menuItems: data as MenuItem[] }));
         setState(prev => ({ ...prev, menuItems: mapped }));
 
       } catch {
-        // Fallback to existing dummy list if API fails
         setState(prev => ({ ...prev, menuItems: dummyMenuItems }));
       }
     };
@@ -233,10 +181,68 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     loadMenu();
   }, []);
 
+const loadOrders = async (userId: string) => {
+  try {
+    const res = await fetch(`${env.VITE_user_history_api}/${userId}`, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) throw new Error('Failed to fetch orders');
 
+    const data = await res.json();
+    console.log("Order data fetched:", data);
+
+   const mappedOrders: Order[] = (Array.isArray(data) ? data : []).map((o: any) => {
+
+  const orderDateStr = (o.order_date || o.order_time || '').replace(/\s*at\s*/i, ' ');
+  const parsedDate = new Date(orderDateStr);
+  const validDate = !isNaN(parsedDate.getTime());
+
+  const itemsArray = Array.isArray(o.items)
+    ? o.items.map((item: string) => item.trim())
+    : String(o.items || '')
+        .split(',')
+        .map((item: string) => item.trim())
+        .filter(Boolean);
+  const itemCount = parseInt(o.total_items?.replace(/\D/g, '') || String(itemsArray.length));
+
+  const price = parseFloat(o.total_price?.replace(/[^\d.]/g, '') || '0');
+
+  return {
+    id: String(o.transaction_id || o.order_id),
+    orderNumber: o.transaction_id || o.cust_id,
+    items: itemsArray,
+    itemCount,
+    price,
+    date: validDate ? parsedDate.toISOString().split('T')[0] : '',
+    time: validDate
+      ? parsedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '',
+    status: (o.status?.toLowerCase() || 'placed') as 'placed' | 'preparing' | 'ready' | 'delivered'
+  };
+});
+
+    setState(prev => ({ ...prev, orders: mappedOrders }));
+  } catch (err) {
+    console.error('Failed to load orders:', err);
+    setState(prev => ({ ...prev, orders: dummyOrders }));
+  }
+};
+
+const fetchUserOrders = async (userId: string) => {
+  try {
+    const response = await fetch(`${env.VITE_user_history_api}/${userId}`, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+ 
+    console.log("Fetched orders:", response);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+  }
+
+};
 const login = async (email: string, password: string): Promise<boolean> => {
   try {
-    const response = await fetch('http://localhost:8080/user-login', {
+    const response = await fetch(env.VITE_login_api, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -257,6 +263,7 @@ const login = async (email: string, password: string): Promise<boolean> => {
     };
 
     setState(prev => ({ ...prev, user }));
+    loadOrders(user.id);
     return true;
   } catch (error) {
     console.error('Login error:', error);
@@ -372,7 +379,6 @@ const login = async (email: string, password: string): Promise<boolean> => {
   );
 };
 
-// Hook to use context
 export const useApp = () => {
   const context = useContext(AppContext);
   if (context === undefined) {

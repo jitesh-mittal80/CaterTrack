@@ -11,11 +11,7 @@ app.use(express.json());
 
 app.get("/Food_items", async (req, res) => {
   try {
-    // 1. Use [result] to get just the data rows from the query response.
-    // 2. We use 'result' (singular) consistently.
     const [result] = await db.query("SELECT * FROM Food_items");
-
-    // 3. Send back the 'result' variable that we defined above.
     res.json(result);
 
   } catch (err) {
@@ -23,7 +19,6 @@ app.get("/Food_items", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Endpoint for user login
 
 app.post("/user-login", async (req, res) => {
   const { email, password } = req.body;
@@ -44,14 +39,40 @@ app.post("/user-login", async (req, res) => {
   }
 });
 
+app.get("/user-orders/:userId", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const [orders] = await db.query(
+      `
+      SELECT 
+        o.transaction_id AS order_id,
+        o.cust_id,
+        CONCAT(COUNT(oi.food_id), ' items') AS total_items,
+        GROUP_CONCAT(f.food_name SEPARATOR ', ') AS items,
+        CONCAT('₹', FORMAT(o.total_amount, 0)) AS total_price,
+        DATE_FORMAT(o.order_date, '%Y-%m-%d at %h:%i %p') AS order_time,
+        o.status
+      FROM Orders o
+      JOIN OrderItems oi ON o.transaction_id = oi.transaction_id
+      JOIN Food_Items f ON oi.food_id = f.food_id
+      WHERE o.cust_id = ?
+      GROUP BY o.transaction_id, o.cust_id, o.total_amount, o.order_date, o.status
+      ORDER BY o.order_date DESC;
+      `,
+      [userId]
+    );
 
-const PORT = process.env.PORT || 8080;
+    res.json(orders);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Database error",
+      details: err.sqlMessage || err.message,
+    });
+  }
+});
+
+
+
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
-//write a query to insert a new column of image link in the food_items table
-//write a query to add img links to the food_items table
-//insert into food_items (img) values ('https://example.com/image1.jpg') where id = 1;
-//insert into food_items (img) values ('https://example.com/image2.jpg') where id = 2;
-//insert into food_items (img) values ('https://example.com/image3.jpg') where id = 3;
-//insert into food_items (img) values ('https://example.com/image4.jpg') where id = 4;
-//insert into food_items (img) values ('https://example.com/image5.jpg') where id = 5;
-//insert into food_items (img) values ('https://example.com/image6.jpg') where id = 6;
