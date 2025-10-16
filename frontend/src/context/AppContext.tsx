@@ -26,6 +26,7 @@ interface Order {
   date: string;
   time: string;
   status: 'placed' | 'preparing' | 'ready' | 'delivered';
+  eta?: string; // Estimated time of arrival
 }
 
 // Menu item type
@@ -341,6 +342,13 @@ const login = async (email: string, password: string): Promise<boolean> => {
     if (state.cart.length === 0) return;
     
     const itemNames = state.cart.map(item => item.name);
+
+    // Calculate ETA (20-40 minutes from now based on item count)
+    const baseMinutes = 20;
+    const additionalMinutes = Math.min(state.cartCount * 3, 20);
+    const etaMinutes = baseMinutes + additionalMinutes;
+    const etaTime = new Date(Date.now() + etaMinutes * 60000);
+    const etaString = etaTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
     const newOrder: Order = {
       id: Date.now().toString(),
@@ -350,7 +358,8 @@ const login = async (email: string, password: string): Promise<boolean> => {
       price: state.cart.reduce((total, item) => total + (item.price * item.quantity), 0),
       date: new Date().toISOString().split('T')[0],
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      status: 'placed'
+      status: 'placed',
+      eta: etaString
     };
 
     setState(prev => ({
