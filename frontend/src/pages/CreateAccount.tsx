@@ -12,7 +12,7 @@ const CreateAccount = () => {
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { setAccountDetails } = useApp();
+  const { createAccount } = useApp();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -30,8 +30,27 @@ const CreateAccount = () => {
         return;
       }
 
-      setAccountDetails({ name, email, mobile });
-      navigate('/otp');
+      // Call the API to create account
+      const success = await createAccount({
+        name,
+        email,
+        mobile,
+        password
+      });
+
+      if (success) {
+        toast({
+          title: "Account Created",
+          description: "Your account has been created successfully!",
+        });
+        navigate('/otp'); // Navigate to OTP verification
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to create account. Please try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -42,6 +61,7 @@ const CreateAccount = () => {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">

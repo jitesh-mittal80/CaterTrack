@@ -49,7 +49,7 @@ const OrderCard = ({ order }: OrderCardProps) => {
           <p className="font-semibold text-lg text-foreground">₹{order.price.toFixed(0)}</p>
           <p className="text-sm text-muted-foreground">{order.date} at {order.time}</p>
           {order.eta && (order.status === 'placed' || order.status === 'preparing') && (
-            <p className="text-sm text-primary font-medium mt-1">ETA: {order.eta}</p>
+            <p className="text-sm text-primary font-medium mt-1">Collect Your Order By: {order.eta}</p>
           )}
         </div>
       </div>

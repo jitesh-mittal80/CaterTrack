@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-const env = import.meta.env;
 import { apiFetch } from '../lib/api';
-
+const env = import.meta.env;
+console.log("eror")
 // User type
 interface User {
   id: string;
@@ -65,12 +65,24 @@ interface LoginResponse {
   }
 }
 
+//Create Account
+interface CreateAccountResponse {
+  success: boolean;
+  message: string;
+  user?: {
+    cust_id: string;
+    name: string;
+    email: string;
+    mobile: string;
+  };
+}
+
 interface AppContextType {
   state: AppState;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   setAccountDetails: (details: AccountDetails) => void;
-  createAccount: () => boolean;
+  createAccount: (accountData: AccountDetails & { password: string }) => Promise<boolean>;
   addToCart: (item: MenuItem) => void;
   decreaseQuantity: (itemId: string) => void;
   removeFromCart: (itemId: string) => void;
@@ -280,17 +292,54 @@ const login = async (email: string, password: string): Promise<boolean> => {
     setState(prev => ({ ...prev, accountDetails: details }));
   };
 
-  const createAccount = (): boolean => {
-    if (state.accountDetails) {
-      const user: User = {
-        id: Date.now().toString(),
-        name: state.accountDetails.name,
-        email: state.accountDetails.email
-      };
-      setState(prev => ({ ...prev, user }));
+  // const createAccount = (): boolean => {
+  //   if (state.accountDetails) {
+  //     const user: User = {
+  //       id: Date.now().toString(),
+  //       name: state.accountDetails.name,
+  //       email: state.accountDetails.email
+  //     };
+  //     setState(prev => ({ ...prev, user }));
+  //     return true;
+  //   }
+  //   return false;
+  // };
+
+  const createAccount = async (accountData: AccountDetails & { password: string }): Promise<boolean> => {
+    try {
+      const response = await fetch(env.VITE_create_account_api || 'http://localhost:8080/create-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: accountData.name,
+          email: accountData.email,
+          mobile: accountData.mobile,
+          password: accountData.password
+        }),
+      });
+  
+      const data: CreateAccountResponse = await response.json();
+  
+      if (!data.success) {
+        throw new Error(data.message || 'Account creation failed');
+      }
+  
+      if (data.user) {
+        const user: User = {
+          id: data.user.cust_id,
+          name: data.user.name,
+          email: data.user.email
+        };
+        setState(prev => ({ ...prev, user }));
+      }
+  
       return true;
+    } catch (error) {
+      console.error('Create account error:', error);
+      return false;
     }
-    return false;
   };
 
   const addToCart = (item: MenuItem) => {

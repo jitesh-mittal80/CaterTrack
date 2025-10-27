@@ -1,0 +1,20 @@
+{
+  "name": "cater-track-app-main",
+  "version": "1.0.0",
+  "description": "This isn't just another food ordering app. It's a comprehensive digital ecosystem for a college or corporate canteen. The system aims to solve common problems like long queues, food wastage, and lack of menu transparency by introducing pre-ordering, digital payments, and data-driven menu management.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jitesh-mittal80/CaterTrack.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jitesh-mittal80/CaterTrack/issues"
+  },
+  "homepage": "https://github.com/jitesh-mittal80/CaterTrack#readme"
+}
