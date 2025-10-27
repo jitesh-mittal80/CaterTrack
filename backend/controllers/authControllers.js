@@ -1,4 +1,5 @@
 import db from "../db.js";
+
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
   try {
