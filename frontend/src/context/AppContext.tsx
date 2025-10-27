@@ -99,62 +99,6 @@ interface OrderApiResponse {
   order_time: string;
   status: string;
 }
-// Dummy data
-const dummyMenuItems: MenuItem[] = [];
-
-const dummyOrders: Order[] = [
-  {
-    id: '1',
-    orderNumber: 'NSU001',
-    items: ['Paneer Tikka Masla', 'Vegetable Biryani', 'Masala Dosa'],
-    itemCount: 3,
-    price: 520,
-    date: '2024-01-07',
-    time: '12:30 PM',
-    status: 'preparing'
-  },
-  {
-    id: '2',
-    orderNumber: 'NSU002', 
-    items: ['Chole Bhature', 'Palak Paneer with Roti'],
-    itemCount: 2,
-    price: 340,
-    date: '2024-01-07',
-    time: '11:45 AM',
-    status: 'ready'
-  },
-  {
-    id: '3',
-    orderNumber: 'NSU003',
-    items: ['Rajma Chawal'],
-    itemCount: 1,
-    price: 140,
-    date: '2024-01-06',
-    time: '2:15 PM',
-    status: 'delivered'
-  },
-  {
-    id: '4',
-    orderNumber: 'NSU004',
-    items: ['Paneer Tikka Masala', 'Vegetable Biryani', 'Chole Bhature', 'Masala Dosa'],
-    itemCount: 4,
-    price: 640,
-    date: '2024-01-06',
-    time: '1:20 PM', 
-    status: 'delivered'
-  },
-  {
-    id: '5',
-    orderNumber: 'NSU005',
-    items: ['Palak Paneer with Roti', 'Rajma Chawal'],
-    itemCount: 2,
-    price: 360,
-    date: '2024-01-05',
-    time: '12:00 PM',
-    status: 'delivered'
-  }
-];
-
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -162,7 +106,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<AppState>({
     user: null,
     accountDetails: null,
-    orders: dummyOrders,
+    orders: [],
     menuItems: [],
     cart: [],
     cartCount: 0
@@ -185,9 +129,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           category: 'General'
         }));
         setState(prev => ({ ...prev, menuItems: mapped }));
-
-      } catch {
-        setState(prev => ({ ...prev, menuItems: dummyMenuItems }));
+      }
+      catch (err) {
+        console.error('Failed to load menu:', err);
       }
     };
 
@@ -237,7 +181,6 @@ const loadOrders = async (userId: string) => {
     setState(prev => ({ ...prev, orders: mappedOrders }));
   } catch (err) {
     console.error('Failed to load orders:', err);
-    setState(prev => ({ ...prev, orders: dummyOrders }));
   }
 };
 
@@ -253,6 +196,7 @@ const fetchUserOrders = async (userId: string) => {
   }
 
 };
+
 const login = async (email: string, password: string): Promise<boolean> => {
   try {
     const response = await fetch(env.VITE_login_api, {
