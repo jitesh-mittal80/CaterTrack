@@ -39,7 +39,7 @@ const CreateAccount = () => {
           title: "Account Created",
           description: "Your account has been created successfully!",
         });
-        navigate('/otp'); // Navigate to OTP verification
+        navigate('/dashboard'); // Navigate to OTP verification
       } else {
         toast({
           title: "Error",

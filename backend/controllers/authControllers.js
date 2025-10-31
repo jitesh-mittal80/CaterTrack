@@ -49,7 +49,18 @@ export const signupUser = async (req, res) => {
       "INSERT INTO customer (cust_id,name, email, password, mobile_no) VALUES (?, ?, ?,?,?)",
       [newId,name,email, password,mobile_no]
     );
-    res.status(201).json({ success: true, message: "Signup successful", userId: result.insertId });
+    res.status(201).json({
+      success: true,
+      message: "Signup successful",
+      user: {
+        cust_id: newId,
+        name,
+        email,
+        password,
+        mobile_no
+      }
+    });
+    
     console.log("Signup successful")
   } catch (err) {
     console.error("Database error:", err.sqlMessage || err.message);
