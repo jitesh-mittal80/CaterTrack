@@ -51,6 +51,12 @@ const CreateAccount = () => {
           variant: "destructive",
         });
       }
+    //   setAccountDetails({ name, email, mobile });
+    //   toast({
+    //   title: "Account Created",
+    //   description: "You have been logged in successfully!",
+    // });
+    //   navigate('/');
     } catch (error) {
       toast({
         title: "Error",

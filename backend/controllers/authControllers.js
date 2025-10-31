@@ -20,7 +20,8 @@ export const loginUser = async (req, res) => {
 };
 
 export const signupUser = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, mobile_no } = req.body;
+  console.log(req.body)
   try {
     const [existingUser] = await db.query(
       "SELECT * FROM customer WHERE email = ?",
@@ -29,11 +30,27 @@ export const signupUser = async (req, res) => {
     if (existingUser.length > 0) {
       return res.status(409).json({ success: false, message: "Email already in use" });
     }
+    // if (mobile_no.length != 10) {
+    //   return res.status(409).json({ success: false, message: "Mobile Number must have 10 digits" });
+    // }
+    // Get the last customer ID
+    const [rows] = await db.query(
+      "SELECT cust_id FROM customer ORDER BY cust_id DESC LIMIT 1"
+    );
+    let newId = 'NS101';
+    if (rows.length > 0) {
+      const lastId = rows[0].cust_id;
+      const lastNum = parseInt(lastId.replace("NS", ""), 10);
+      newId = "NS" + (lastNum + 1);
+    }
+
+    //Inserting into DB
     const [result] = await db.query(
-      "INSERT INTO customer (name, email, password) VALUES (?, ?, ?)",
-      [name, email, password]
+      "INSERT INTO customer (cust_id,name, email, password, mobile_no) VALUES (?, ?, ?,?,?)",
+      [newId,name,email, password,mobile_no]
     );
     res.status(201).json({ success: true, message: "Signup successful", userId: result.insertId });
+    console.log("Signup successful")
   } catch (err) {
     console.error("Database error:", err.sqlMessage || err.message);
     res.status(500).json({ error: "Database error" });
