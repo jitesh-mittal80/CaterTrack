@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
+import { Console } from 'console';
+import { dataTagSymbol } from '@tanstack/react-query';
 const env = import.meta.env;
 console.log("eror")
 // User type
@@ -7,6 +9,7 @@ interface User {
   id: string;
   name: string;
   email: string;
+  mobile? : string;
 }
 
 // Account details type
@@ -78,27 +81,28 @@ interface SignupResponse {
 }
 
 //Create Account
-interface CreateAccountResponse {
-  success: boolean;
-  message: string;
-  user?: {
-    cust_id: string;
-    name: string;
-    email: string;
-    mobile: string;
-  };
-}
+// interface CreateAccountResponse {
+//   success: boolean;
+//   message: string;
+//   user?: {
+//     cust_id: string;
+//     name: string;
+//     email: string;
+//     mobile: string;
+//   };
+// }
 
 interface AppContextType {
   state: AppState;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   setAccountDetails: (details: AccountDetails) => void;
-<<<<<<< HEAD
-  createAccount: (accountData: AccountDetails & { password: string }) => Promise<boolean>;
-=======
-  signup: (name: string, email: string, password: string, mobile_no: string)=> Promise<boolean>;
->>>>>>> a455b9cc1303d49ca012b00b6c815752eecb0f15
+// <<<<<<< HEAD
+  // createAccount: (accountData: AccountDetails & { password: string }) => Promise<boolean>;
+// =======
+  signup: (name: string, email: string, mobile_no: string, password: string) => Promise<boolean>;
+
+// >>>>>>> a455b9cc1303d49ca012b00b6c815752eecb0f15
   addToCart: (item: MenuItem) => void;
   decreaseQuantity: (itemId: string) => void;
   removeFromCart: (itemId: string) => void;
@@ -129,7 +133,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   });
 
   useEffect(() => {
-    const API_URL = env.VITE_menu_items_api || `http://localhost:8080/Food_items` ; 
+    const API_URL = env.VITE_menu_items_api || `http://localhost:4000/Food_items` ; 
     const loadMenu = async () => {
       try {
         const res = await fetch(API_URL, { headers: { 'Content-Type': 'application/json' } });
@@ -243,39 +247,73 @@ const login = async (email: string, password: string): Promise<boolean> => {
     return false;
   }
 };
+
+
+// const signup = async (
+//   name: string,
+//   email: string,
+//   password: string,
+//   mobile_no: string
+// ): Promise<boolean> => {
+//   try {
+//     const response = await fetch(env.VITE_signup_api, {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({ name, email, password, mobile_no}),
+//     });
+
+//     const data: SignupResponse = await response.json();
+
+//     if (!data.success) {
+//       throw new Error(data.message || 'Signup failed');
+//     }
+//     const user: User = {
+//       id: data.user.cust_id,
+//       name: data.user.name,
+//       email: data.user.email
+//     };
+    
+    
+//     setState(prev => ({ ...prev, user }));
+//     loadOrders(user.id);
+//     return true;
+//   } catch (error) {
+//     console.error('Signup error:', error);
+//     return false;
+//   }
+// };
+
 const signup = async (
   name: string,
   email: string,
-  password: string,
-  mobile_no: string
+  mobile_no: string,
+  password: string
 ): Promise<boolean> => {
   try {
-    const response = await fetch(env.VITE_signup_api, {
+    const response = await fetch(env.VITE_signup_api || 'http://localhost:4000/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password, mobile_no}),
+      body: JSON.stringify({ name, email, mobile_no, password }),
     });
-
     const data: SignupResponse = await response.json();
-
-    if (!data.success) {
-      throw new Error(data.message || 'Signup failed');
+    if (!data.success) throw new Error(data.message || 'Account creation failed');
+    console.log(data)
+    if (data.user) {
+      const user: User = {
+        id: data.user.cust_id,
+        name: data.user.name,
+        email: data.user.email,
+        mobile_no : data.user.mobile_no,
+      };
+      setState(prev => ({ ...prev, user }));
     }
-    const user: User = {
-      id: data.user.cust_id,
-      name: data.user.name,
-      email: data.user.email
-    };
-    
-    
-    setState(prev => ({ ...prev, user }));
-    loadOrders(user.id);
     return true;
   } catch (error) {
     console.error('Signup error:', error);
     return false;
   }
 };
+
   const logout = () => {
     setState(prev => ({ ...prev, user: null, accountDetails: null, cart: [], cartCount: 0 }));
   };
@@ -283,60 +321,44 @@ const signup = async (
   const setAccountDetails = (details: AccountDetails) => {
     setState(prev => ({ ...prev, accountDetails: details }));
   };
-<<<<<<< HEAD
 
-  // const createAccount = (): boolean => {
-  //   if (state.accountDetails) {
-  //     const user: User = {
-  //       id: Date.now().toString(),
-  //       name: state.accountDetails.name,
-  //       email: state.accountDetails.email
-  //     };
-  //     setState(prev => ({ ...prev, user }));
+  // const signup = async (accountData: AccountDetails & { password: string }): Promise<boolean> => {
+  //   try {
+  //     const response = await fetch(env.VITE_signup_api || 'http://localhost:4000/auth/signup', {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         name: accountData.name,
+  //         email: accountData.email,
+  //         mobile: accountData.mobile,
+  //         password: accountData.password
+  //       }),
+  //     });
+  
+  //     const data: CreateAccountResponse = await response.json();
+  
+  //     if (!data.success) {
+  //       throw new Error(data.message || 'Account creation failed');
+  //     }
+  
+  //     if (data.user) {
+  //       const user: User = {
+  //         id: data.user.cust_id,
+  //         name: data.user.name,
+  //         email: data.user.email
+  //       };
+  //       setState(prev => ({ ...prev, user }));
+  //     }
+  
   //     return true;
+  //   } catch (error) {
+  //     console.error('Create account error:', error);
+  //     return false;
   //   }
-  //   return false;
   // };
 
-  const createAccount = async (accountData: AccountDetails & { password: string }): Promise<boolean> => {
-    try {
-      const response = await fetch(env.VITE_create_account_api || 'http://localhost:8080/create-account', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: accountData.name,
-          email: accountData.email,
-          mobile: accountData.mobile,
-          password: accountData.password
-        }),
-      });
-  
-      const data: CreateAccountResponse = await response.json();
-  
-      if (!data.success) {
-        throw new Error(data.message || 'Account creation failed');
-      }
-  
-      if (data.user) {
-        const user: User = {
-          id: data.user.cust_id,
-          name: data.user.name,
-          email: data.user.email
-        };
-        setState(prev => ({ ...prev, user }));
-      }
-  
-      return true;
-    } catch (error) {
-      console.error('Create account error:', error);
-      return false;
-    }
-  };
-
-=======
->>>>>>> a455b9cc1303d49ca012b00b6c815752eecb0f15
   const addToCart = (item: MenuItem) => {
     setState(prev => {
       const existingItem = prev.cart.find(cartItem => cartItem.id === item.id);

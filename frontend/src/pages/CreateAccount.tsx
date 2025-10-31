@@ -12,7 +12,8 @@ const CreateAccount = () => {
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { setAccountDetails, createAccount } = useApp();
+  // const { setAccountDetails, signup } = useApp();
+  const { signup } = useApp();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -31,12 +32,7 @@ const CreateAccount = () => {
       }
 
       // Call the API to create account
-      const success = await createAccount({
-        name,
-        email,
-        mobile,
-        password
-      });
+      const success = await signup(name, email, mobile, password);
 
       if (success) {
         toast({
