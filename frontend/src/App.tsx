@@ -7,7 +7,6 @@ import { AppProvider } from "./context/AppContext";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
 import CreateAccount from "./pages/CreateAccount";
-import OTP from "./pages/OTP";
 import Dashboard from "./pages/Dashboard";
 import OrderFood from "./pages/OrderFood";
 import OrderHistory from "./pages/OrderHistory";
@@ -27,7 +26,6 @@ const App = () => (
               <Route index element={<Dashboard />} />
               <Route path="login" element={<Login />} />
               <Route path="create-account" element={<CreateAccount />} />
-              <Route path="otp" element={<OTP />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="order-food" element={<OrderFood />} />
               <Route path="order-history" element={<OrderHistory />} />

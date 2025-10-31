@@ -12,7 +12,7 @@ const CreateAccount = () => {
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { createAccount } = useApp();
+  const { setAccountDetails, createAccount } = useApp();
   const { toast } = useToast();
   const navigate = useNavigate();
 

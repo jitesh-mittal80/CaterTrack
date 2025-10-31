@@ -11,12 +11,11 @@ const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true); // Default to open on larger screens
 
   // Redirect to login if not authenticated
-  if (!state.user && location.pathname !== '/login' && location.pathname !== '/create-account' && location.pathname !== '/otp') {
+  if (!state.user && location.pathname !== '/login' && location.pathname !== '/create-account') {
     return <Navigate to="/login" replace />;
   }
 
-  // Show login, create account, and OTP pages without layout
-  if (location.pathname === '/login' || location.pathname === '/create-account' || location.pathname === '/otp') {
+  if (location.pathname === '/login' || location.pathname === '/create-account') {
     return <Outlet />;
   }
 
