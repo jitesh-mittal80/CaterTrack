@@ -303,7 +303,7 @@ const signup = async (
         id: data.user.cust_id,
         name: data.user.name,
         email: data.user.email,
-        mobile_no : data.user.mobile_no,
+        mobile : data.user.mobile_no,
       };
       setState(prev => ({ ...prev, user }));
     }
