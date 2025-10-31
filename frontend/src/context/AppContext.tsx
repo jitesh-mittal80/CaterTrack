@@ -64,13 +64,25 @@ interface LoginResponse {
     password: string;
   }
 }
+//signup response type
+interface SignupResponse {
+  success: boolean;
+  message: string;
+  user: {
+    cust_id: string;
+    name: string;
+    email: string;
+    password: string;
+    mobile_no: string;
+  }
+}
 
 interface AppContextType {
   state: AppState;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   setAccountDetails: (details: AccountDetails) => void;
-  createAccount: () => boolean;
+  signup: (name: string, email: string, password: string, mobile_no: string)=> Promise<boolean>;
   addToCart: (item: MenuItem) => void;
   decreaseQuantity: (itemId: string) => void;
   removeFromCart: (itemId: string) => void;
@@ -215,7 +227,39 @@ const login = async (email: string, password: string): Promise<boolean> => {
     return false;
   }
 };
+const signup = async (
+  name: string,
+  email: string,
+  password: string,
+  mobile_no: string
+): Promise<boolean> => {
+  try {
+    const response = await fetch(env.VITE_signup_api, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password, mobile_no}),
+    });
 
+    const data: SignupResponse = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.message || 'Signup failed');
+    }
+    const user: User = {
+      id: data.user.cust_id,
+      name: data.user.name,
+      email: data.user.email
+    };
+    
+    
+    setState(prev => ({ ...prev, user }));
+    loadOrders(user.id);
+    return true;
+  } catch (error) {
+    console.error('Signup error:', error);
+    return false;
+  }
+};
   const logout = () => {
     setState(prev => ({ ...prev, user: null, accountDetails: null, cart: [], cartCount: 0 }));
   };
@@ -223,20 +267,6 @@ const login = async (email: string, password: string): Promise<boolean> => {
   const setAccountDetails = (details: AccountDetails) => {
     setState(prev => ({ ...prev, accountDetails: details }));
   };
-
-  const createAccount = (): boolean => {
-    if (state.accountDetails) {
-      const user: User = {
-        id: Date.now().toString(),
-        name: state.accountDetails.name,
-        email: state.accountDetails.email
-      };
-      setState(prev => ({ ...prev, user }));
-      return true;
-    }
-    return false;
-  };
-
   const addToCart = (item: MenuItem) => {
     setState(prev => {
       const existingItem = prev.cart.find(cartItem => cartItem.id === item.id);
@@ -287,7 +317,6 @@ const login = async (email: string, password: string): Promise<boolean> => {
     
     const itemNames = state.cart.map(item => item.name);
 
-    // Calculate ETA (20-40 minutes from now based on item count)
     const baseMinutes = 20;
     const additionalMinutes = Math.min(state.cartCount * 3, 20);
     const etaMinutes = baseMinutes + additionalMinutes;
@@ -320,7 +349,7 @@ const login = async (email: string, password: string): Promise<boolean> => {
       login,
       logout,
       setAccountDetails,
-      createAccount,
+      signup,
       addToCart,
       decreaseQuantity,
       removeFromCart,

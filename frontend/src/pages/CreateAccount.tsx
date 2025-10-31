@@ -31,7 +31,11 @@ const CreateAccount = () => {
       }
 
       setAccountDetails({ name, email, mobile });
-      navigate('/otp');
+      toast({
+      title: "Account Created",
+      description: "You have been logged in successfully!",
+    });
+      navigate('/');
     } catch (error) {
       toast({
         title: "Error",

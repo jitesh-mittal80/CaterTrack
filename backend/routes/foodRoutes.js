@@ -6,4 +6,3 @@ const router = express.Router();
 router.get("/", getAllFoodItems);
 
 export default router;
-
