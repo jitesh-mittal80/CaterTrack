@@ -3,7 +3,6 @@ import { apiFetch } from '../lib/api';
 import { Console } from 'console';
 import { dataTagSymbol } from '@tanstack/react-query';
 const env = import.meta.env;
-console.log("eror")
 // User type
 interface User {
   id: string;

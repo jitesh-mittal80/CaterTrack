@@ -30,3 +30,6 @@ const { userId } = req.params;
     });
   }
 };
+export const placeOrder = async (req,res) =>{
+  const {transaction_id, cust_id} = req.body;
+}

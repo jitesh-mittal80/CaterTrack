@@ -21,7 +21,6 @@ export const loginUser = async (req, res) => {
 
 export const signupUser = async (req, res) => {
   const { name, email, password, mobile_no } = req.body;
-  console.log(req.body)
   try {
     const [existingUser] = await db.query(
       "SELECT * FROM customer WHERE email = ?",
@@ -60,8 +59,6 @@ export const signupUser = async (req, res) => {
         mobile_no
       }
     });
-    
-    console.log("Signup successful")
   } catch (err) {
     console.error("Database error:", err.sqlMessage || err.message);
     res.status(500).json({ error: "Database error" });
