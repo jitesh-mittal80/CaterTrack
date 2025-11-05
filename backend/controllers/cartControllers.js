@@ -126,51 +126,51 @@ try {
 }
 };
 
-//  Remove single item from cart
-export const removeFromCart = async (req, res) => {
-  const { transaction_id, food_id } = req.body;
+// //  Remove single item from cart
+// export const removeFromCart = async (req, res) => {
+//   const { transaction_id, food_id } = req.body;
 
-  try {
-    await db.query("DELETE FROM Cart_Items WHERE transaction_id = ? AND food_id = ?", [transaction_id, food_id]);
+//   try {
+//     await db.query("DELETE FROM Cart_Items WHERE transaction_id = ? AND food_id = ?", [transaction_id, food_id]);
 
-    await db.query(
-      `UPDATE Cart 
-       SET cart_total = (
-         SELECT IFNULL(SUM(CI.qty * FI.price), 0)
-         FROM Cart_Items CI 
-         JOIN Food_Items FI ON CI.food_id = FI.food_id
-         WHERE CI.transaction_id = Cart.transaction_id
-       )
-       WHERE transaction_id = ?`,
-      [transaction_id]
-    );
+//     await db.query(
+//       `UPDATE Cart 
+//        SET cart_total = (
+//          SELECT IFNULL(SUM(CI.qty * FI.price), 0)
+//          FROM Cart_Items CI 
+//          JOIN Food_Items FI ON CI.food_id = FI.food_id
+//          WHERE CI.transaction_id = Cart.transaction_id
+//        )
+//        WHERE transaction_id = ?`,
+//       [transaction_id]
+//     );
 
-    res.status(200).json({ message: "Item removed from cart" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error removing item from cart" });
-  }
-};
+//     res.status(200).json({ message: "Item removed from cart" });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Error removing item from cart" });
+//   }
+// };
 
-//  Clear entire cart by customer ID
-export const clearCart = async (req, res) => {
-  const { cust_id } = req.body;
+// //  Clear entire cart by customer ID
+// export const clearCart = async (req, res) => {
+//   const { cust_id } = req.body;
 
-  try {
-    const [cart] = await db.query("SELECT transaction_id FROM Cart WHERE cust_id = ?", [cust_id]);
-    if (cart.length === 0) return res.status(404).json({ message: "No cart found" });
+//   try {
+//     const [cart] = await db.query("SELECT transaction_id FROM Cart WHERE cust_id = ?", [cust_id]);
+//     if (cart.length === 0) return res.status(404).json({ message: "No cart found" });
 
-    const transaction_id = cart[0].transaction_id;
+//     const transaction_id = cart[0].transaction_id;
 
-    await db.query("DELETE FROM Cart_Items WHERE transaction_id = ?", [transaction_id]);
-    await db.query("DELETE FROM Cart WHERE transaction_id = ?", [transaction_id]);
+//     await db.query("DELETE FROM Cart_Items WHERE transaction_id = ?", [transaction_id]);
+//     await db.query("DELETE FROM Cart WHERE transaction_id = ?", [transaction_id]);
 
-    res.status(200).json({ message: "Cart cleared successfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error clearing cart" });
-  }
-};
+//     res.status(200).json({ message: "Cart cleared successfully" });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: "Error clearing cart" });
+//   }
+// };
 
 //  Place order using stored procedure
 export const placeOrder = async (req, res) => {
