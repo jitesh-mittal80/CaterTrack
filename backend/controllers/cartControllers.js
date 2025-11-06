@@ -74,10 +74,19 @@ export const getCart = async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      `SELECT ci.food_id, f.food_name, f.price, ci.qty
+      // `SELECT ci.food_id, f.food_name, f.price, ci.qty
+      //  FROM Cart_Items ci
+      //  JOIN Food_items f ON ci.food_id = f.food_id
+      //  JOIN cart c ON c.transaction_id = ci.transaction_id
+      //  WHERE c.cust_id = ?;`,
+      `SELECT c.transaction_id AS transaction_id,
+              ci.food_id,
+              f.food_name,
+              f.price,
+              ci.qty
        FROM Cart_Items ci
        JOIN Food_items f ON ci.food_id = f.food_id
-       JOIN cart c ON c.transaction_id = ci.transaction_id
+       JOIN Cart c ON c.transaction_id = ci.transaction_id
        WHERE c.cust_id = ?;`,
       [cust_id]
     );
@@ -126,31 +135,31 @@ try {
 }
 };
 
-// //  Remove single item from cart
-// export const removeFromCart = async (req, res) => {
-//   const { transaction_id, food_id } = req.body;
+//  Remove single item from cart
+export const removeFromCart = async (req, res) => {
+  const { transaction_id, food_id } = req.body;
 
-//   try {
-//     await db.query("DELETE FROM Cart_Items WHERE transaction_id = ? AND food_id = ?", [transaction_id, food_id]);
+  try {
+    await db.query("DELETE FROM Cart_Items WHERE transaction_id = ? AND food_id = ?", [transaction_id, food_id]);
 
-//     await db.query(
-//       `UPDATE Cart 
-//        SET cart_total = (
-//          SELECT IFNULL(SUM(CI.qty * FI.price), 0)
-//          FROM Cart_Items CI 
-//          JOIN Food_Items FI ON CI.food_id = FI.food_id
-//          WHERE CI.transaction_id = Cart.transaction_id
-//        )
-//        WHERE transaction_id = ?`,
-//       [transaction_id]
-//     );
+    await db.query(
+      `UPDATE Cart 
+       SET cart_total = (
+         SELECT IFNULL(SUM(CI.qty * FI.price), 0)
+         FROM Cart_Items CI 
+         JOIN Food_Items FI ON CI.food_id = FI.food_id
+         WHERE CI.transaction_id = Cart.transaction_id
+       )
+       WHERE transaction_id = ?`,
+      [transaction_id]
+    );
 
-//     res.status(200).json({ message: "Item removed from cart" });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: "Error removing item from cart" });
-//   }
-// };
+    res.status(200).json({ message: "Item removed from cart" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error removing item from cart" });
+  }
+};
 
 // //  Clear entire cart by customer ID
 // export const clearCart = async (req, res) => {
@@ -175,6 +184,7 @@ try {
 //  Place order using stored procedure
 export const placeOrder = async (req, res) => {
   const { transaction_id, cust_id, status } = req.body;
+  // const allowedStatuses = ['pending', 'confirmed', 'processing', 'completed', 'cancelled']; // Update with your actual allowed values
 
   try {
     await db.query("CALL PlaceOrderFromCart(?, ?, ?)", [transaction_id, cust_id, status]);
