@@ -11,16 +11,16 @@ const CartPopup = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
 
-  const handleQuantityIncrease = (item: any) => {
-    addToCart(item);
+  const handleQuantityIncrease = async (item: any) => {
+    await addToCart(item);
   };
 
-  const handleQuantityDecrease = (itemId: string) => {
-    decreaseQuantity(itemId);
+  const handleQuantityDecrease = async (itemId: string) => {
+    await decreaseQuantity(itemId);
   };
 
-  const handleRemoveItem = (itemId: string) => {
-    removeFromCart(itemId);
+  const handleRemoveItem = async (itemId: string) => {
+    await removeFromCart(itemId);
   };
 
   const handlePlaceOrder = async () => {
@@ -35,18 +35,16 @@ const CartPopup = () => {
 
     setIsOrdering(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      placeOrder();
+      await placeOrder();
       setIsOpen(false);
       toast({
         title: "Order placed successfully!",
-        description: "Your order has been submitted and is being prepared.",
+        description: "Your order has been placed and is being prepared.",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to place order. Please try again.",
+        description: error.message || "Failed to place order. Please try again.",
         variant: "destructive",
       });
     } finally {

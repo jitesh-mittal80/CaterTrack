@@ -6,7 +6,7 @@ interface Order {
   price: number;
   date: string;
   time: string;
-  status: 'placed' | 'preparing' | 'ready' | 'delivered';
+  status: 'Pending' | 'Confirmed' | 'Delivered' | 'Cancelled';
   eta?: string;
 }
 
@@ -17,14 +17,14 @@ interface OrderCardProps {
 const OrderCard = ({ order }: OrderCardProps) => {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'preparing': return 'bg-status-preparing text-white';
-      case 'placed': return 'bg-status-placed text-white';
-      case 'ready': return 'bg-status-ready text-white';
-      case 'delivered': return 'bg-status-delivered text-white';
+      case 'Pending': return 'bg-status-preparing text-white';
+      case 'Confirmed': return 'bg-status-placed text-white';
+      case 'Delivered': return 'bg-status-ready text-white';
+      case 'Cancelled': return 'bg-status-delivered text-white';
       default: return 'bg-muted text-muted-foreground';
     }
   };
-
+  
   return (
     <div className="bg-card border border-border rounded-lg p-4 shadow-md hover:shadow-hover transition-all duration-200">
       <div className="flex justify-between items-start mb-3">
@@ -48,7 +48,7 @@ const OrderCard = ({ order }: OrderCardProps) => {
         <div>
           <p className="font-semibold text-lg text-foreground">₹{order.price.toFixed(0)}</p>
           <p className="text-sm text-muted-foreground">{order.date} at {order.time}</p>
-          {order.eta && (order.status === 'placed' || order.status === 'preparing') && (
+          {order.eta && (order.status === 'Confirmed' || order.status === 'Pending')&& (
             <p className="text-sm text-primary font-medium mt-1">Collect Your Order By: {order.eta}</p>
           )}
         </div>

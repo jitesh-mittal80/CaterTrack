@@ -1,66 +1,140 @@
-import db from "../db.js";
+// import db from "../db.js";
 
-export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const [results] = await db.query(
-      "SELECT * FROM customer WHERE email = ? AND password = ?",
-      [email, password]
-    );
+// export const loginUser = async (req, res) => {
+//   const { email, password } = req.body;
+//   try {
+//     const [results] = await db.query(
+//       "SELECT * FROM customer WHERE email = ? AND password = ?",
+//       [email, password]
+//     );
     
-    if (results.length > 0) {
-      res.json({ success: true, message: "Login successful", user: results[0] });
-    } else {
-      res.status(401).json({ success: false, message: "Invalid email or password" });
-    }
-  } catch (err) {
-    console.error("Database error:", err.sqlMessage || err.message);
-    res.status(500).json({ error: "Database error" });
-  }
+//     if (results.length > 0) {
+//       res.json({ success: true, message: "Login successful", user: results[0] });
+//     } else {
+//       res.status(401).json({ success: false, message: "Invalid email or password" });
+//     }
+//   } catch (err) {
+//     console.error("Database error:", err.sqlMessage || err.message);
+//     res.status(500).json({ error: "Database error" });
+//   }
+// };
+
+// export const signupUser = async (req, res) => {
+//   const { name, email, password, mobile_no } = req.body;
+//   try {
+//     const [existingUser] = await db.query(
+//       "SELECT * FROM customer WHERE email = ?",
+//       [email]
+//     ); 
+//     if (existingUser.length > 0) {
+//       return res.status(409).json({ success: false, message: "Email already in use" });
+//     }
+//     // if (mobile_no.length != 10) {
+//     //   return res.status(409).json({ success: false, message: "Mobile Number must have 10 digits" });
+//     // }
+//     // Get the last customer ID
+//     const [rows] = await db.query(
+//       "SELECT cust_id FROM customer ORDER BY cust_id DESC LIMIT 1"
+//     );
+//     let newId = 'NS101';
+//     if (rows.length > 0) {
+//       const lastId = rows[0].cust_id;
+//       const lastNum = parseInt(lastId.replace("NS", ""), 10);
+//       newId = "NS" + (lastNum + 1);
+//     }
+
+//     //Inserting into DB
+//     const [result] = await db.query(
+//       "INSERT INTO customer (cust_id,name, email, password, mobile_no) VALUES (?, ?, ?,?,?)",
+//       [newId,name,email, password,mobile_no]
+//     );
+//     res.status(201).json({
+//       success: true,
+//       message: "Signup successful",
+//       user: {
+//         cust_id: newId,
+//         name,
+//         email,
+//         password,
+//         mobile_no
+//       }
+//     });
+//   } catch (err) {
+//     console.error("Database error:", err.sqlMessage || err.message);
+//     res.status(500).json({ error: "Database error" });
+//   }
+// };
+// backend/controllers/auth.controller.js
+import db from "../db.js";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+dotenv.config();
+
+const generateToken = (user) => {
+  return jwt.sign(
+    { id: user.cust_id, email: user.email },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 };
 
 export const signupUser = async (req, res) => {
   const { name, email, password, mobile_no } = req.body;
+  if (!name || !email || !password) return res.status(400).json({ success: false, message: "name,email,password required" });
+
   try {
-    const [existingUser] = await db.query(
-      "SELECT * FROM customer WHERE email = ?",
-      [email]
-    ); 
-    if (existingUser.length > 0) {
-      return res.status(409).json({ success: false, message: "Email already in use" });
-    }
-    // if (mobile_no.length != 10) {
-    //   return res.status(409).json({ success: false, message: "Mobile Number must have 10 digits" });
-    // }
-    // Get the last customer ID
-    const [rows] = await db.query(
-      "SELECT cust_id FROM customer ORDER BY cust_id DESC LIMIT 1"
-    );
-    let newId = 'NS101';
+    const [existing] = await db.query("SELECT * FROM customer WHERE email = ?", [email]);
+    if (existing.length > 0) return res.status(409).json({ success: false, message: "Email already in use" });
+
+    // Generate new cust_id like NS101, NS102...
+    const [rows] = await db.query("SELECT cust_id FROM customer ORDER BY cust_id DESC LIMIT 1");
+    let newId = "NS101";
     if (rows.length > 0) {
-      const lastId = rows[0].cust_id;
-      const lastNum = parseInt(lastId.replace("NS", ""), 10);
+      const lastId = rows[0].cust_id || "";
+      const lastNum = parseInt(lastId.replace(/^NS/, ""), 10) || 100;
       newId = "NS" + (lastNum + 1);
     }
 
-    //Inserting into DB
-    const [result] = await db.query(
-      "INSERT INTO customer (cust_id,name, email, password, mobile_no) VALUES (?, ?, ?,?,?)",
-      [newId,name,email, password,mobile_no]
+    await db.query(
+      "INSERT INTO customer (cust_id, name, email, password, mobile_no) VALUES (?, ?, ?, ?, ?)",
+      [newId, name, email, password, mobile_no || null]
     );
-    res.status(201).json({
-      success: true,
-      message: "Signup successful",
-      user: {
-        cust_id: newId,
-        name,
-        email,
-        password,
-        mobile_no
-      }
-    });
+
+    const user = { cust_id: newId, name, email, mobile_no: mobile_no || null };
+    const token = generateToken(user);
+
+    res.status(201).json({ success: true, message: "Signup successful", user, token });
   } catch (err) {
-    console.error("Database error:", err.sqlMessage || err.message);
-    res.status(500).json({ error: "Database error" });
+    console.error("signupUser error:", err);
+    res.status(500).json({ success: false, message: "Database error" });
+  }
+};
+
+export const loginUser = async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ success: false, message: "email and password required" });
+
+  try {
+    const [results] = await db.query("SELECT * FROM customer WHERE email = ? AND password = ?", [email, password]);
+    if (results.length === 0) return res.status(401).json({ success: false, message: "Invalid email or password" });
+
+    const user = results[0];
+    const safeUser = { cust_id: user.cust_id, name: user.name, email: user.email, mobile_no: user.mobile_no };
+    const token = generateToken(safeUser);
+
+    res.json({ success: true, message: "Login successful", user: safeUser, token });
+  } catch (err) {
+    console.error("loginUser error:", err);
+    res.status(500).json({ success: false, message: "Database error" });
+  }
+};
+
+export const getMe = async (req, res) => {
+  // requireAuth middleware attaches req.user
+  try {
+    res.json({ success: true, user: req.user });
+  } catch (err) {
+    console.error("getMe error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

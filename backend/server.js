@@ -48,5 +48,10 @@ io.on("connection", (socket) => {
   });
 });
 
+import requireAuth from "./middleware/requireAuth.js";
+app.use("/protected", requireAuth, (req, res) => {
+  res.json({ message: "You accessed a protected route", user: req.user });
+});
+
 const PORT = env.PORT || 4000;
 server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));

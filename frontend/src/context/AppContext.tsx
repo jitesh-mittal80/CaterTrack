@@ -27,7 +27,7 @@ interface Order {
   price: number;
   date: string;
   time: string;
-  status: 'placed' | 'preparing' | 'ready' | 'delivered';
+  status: 'Pending' | 'Confirmed' | 'Delivered' | 'Cancelled';
   eta?: string; // Estimated time of arrival
 }
 
@@ -44,6 +44,7 @@ interface MenuItem {
 // Cart item type
 interface CartItem extends MenuItem {
   quantity: number;
+  transaction_id?: number;
 }
 
 // App state type
@@ -59,6 +60,8 @@ interface AppState {
 interface LoginResponse {
   success: boolean;
   message: string;
+  token?: string;
+
   user: {
     cust_id: string;
     name: string;
@@ -70,6 +73,7 @@ interface LoginResponse {
 interface SignupResponse {
   success: boolean;
   message: string;
+  token?: string;
   user: {
     cust_id: string;
     name: string;
@@ -216,36 +220,80 @@ const fetchUserOrders = async (userId: string) => {
 
 };
 
+// const login = async (email: string, password: string): Promise<boolean> => {
+//   try {
+//     const response = await fetch(env.VITE_login_api, {
+//       method: 'POST',
+//       headers: {
+//         'Content-Type': 'application/json',
+//       },
+//       body: JSON.stringify({ email, password }),
+//     });
+
+//     const data: LoginResponse = await response.json();
+
+//     if (!data.success) {
+//       throw new Error(data.message || 'Login failed');
+//     }
+//     localStorage.setItem("auth_token", data.token);
+
+//     const user: User = {
+//       id: data.user.cust_id,
+//       name: data.user.name,
+//       email: data.user.email
+//     };
+
+//     setState(prev => ({ ...prev, user }));
+//     loadOrders(user.id);
+//     return true;
+//   } catch (error) {
+//     console.error('Login error:', error);
+//     return false;
+//   }
+// };
+
 const login = async (email: string, password: string): Promise<boolean> => {
   try {
-    const response = await fetch(env.VITE_login_api, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    const response = await fetch(env.VITE_login_api || "http://localhost:4000/auth/signin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
 
-    const data: LoginResponse = await response.json();
+    const data = await response.json();
 
-    if (!data.success) {
-      throw new Error(data.message || 'Login failed');
+    if (!response.ok || !data.token) throw new Error(data.message || "Login failed");
+
+    // ✅ Save JWT token in localStorage
+    localStorage.setItem("auth_token", data.token);
+
+    // ✅ Verify token with /auth/me (optional but ensures clean user data)
+    const verifyRes = await fetch(env.VITE_me_api || "http://localhost:4000/auth/me", {
+      headers: { Authorization: `Bearer ${data.token}` },
+    });
+
+    const verifyData = await verifyRes.json();
+
+    if (verifyRes.ok && verifyData.success) {
+      const user: User = {
+        id: verifyData.user.cust_id,
+        name: verifyData.user.name,
+        email: verifyData.user.email,
+      };
+
+      setState((prev) => ({ ...prev, user }));
+      loadOrders(user.id);
+      loadCart(user.id);
+      return true;
+    } else {
+      throw new Error("Failed to verify user token");
     }
-
-    const user: User = {
-      id: data.user.cust_id,
-      name: data.user.name,
-      email: data.user.email
-    };
-
-    setState(prev => ({ ...prev, user }));
-    loadOrders(user.id);
-    return true;
   } catch (error) {
-    console.error('Login error:', error);
+    console.error("Login error:", error);
     return false;
   }
 };
+
 
 
 // const signup = async (
@@ -282,6 +330,37 @@ const login = async (email: string, password: string): Promise<boolean> => {
 //   }
 // };
 
+// const signup = async (
+//   name: string,
+//   email: string,
+//   mobile_no: string,
+//   password: string
+// ): Promise<boolean> => {
+//   try {
+//     const response = await fetch(env.VITE_signup_api || 'http://localhost:4000/auth/signup', {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({ name, email, mobile_no, password }),
+//     });
+//     const data: SignupResponse = await response.json();
+//     if (!data.success) throw new Error(data.message || 'Account creation failed');
+//     console.log(data)
+//     if (data.user) {
+//       const user: User = {
+//         id: data.user.cust_id,
+//         name: data.user.name,
+//         email: data.user.email,
+//         mobile : data.user.mobile_no,
+//       };
+//       setState(prev => ({ ...prev, user }));
+//     }
+//     return true;
+//   } catch (error) {
+//     console.error('Signup error:', error);
+//     return false;
+//   }
+// };
+
 const signup = async (
   name: string,
   email: string,
@@ -294,18 +373,32 @@ const signup = async (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, mobile_no, password }),
     });
+
     const data: SignupResponse = await response.json();
-    if (!data.success) throw new Error(data.message || 'Account creation failed');
-    console.log(data)
+
+    if (!data.success) {
+      throw new Error(data.message || 'Account creation failed');
+    }
+
+    // 🧠 Store JWT token in localStorage (for future auto-login)
+    if (data.token) {
+      localStorage.setItem('auth_token', data.token);
+    }
+
+    // 🧍‍♂️ Set user state immediately
     if (data.user) {
       const user: User = {
         id: data.user.cust_id,
         name: data.user.name,
         email: data.user.email,
-        mobile : data.user.mobile_no,
+        mobile: data.user.mobile_no,
       };
       setState(prev => ({ ...prev, user }));
+      if (data.user) {
+        loadCart(data.user.cust_id);
+      }
     }
+
     return true;
   } catch (error) {
     console.error('Signup error:', error);
@@ -314,8 +407,72 @@ const signup = async (
 };
 
   const logout = () => {
+    localStorage.removeItem('auth_token');
     setState(prev => ({ ...prev, user: null, accountDetails: null, cart: [], cartCount: 0 }));
   };
+  const loadCart = async (userId: string) => {
+    try {
+      const response = await fetch(`${env.VITE_API_URL || 'http://localhost:4000'}/cart/getCart/${userId}`, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch cart');
+      }
+
+      const data = await response.json();
+      const items: CartItem[] = (data.items || []).map((item: any) => ({
+        id: String(item.food_id),
+        name: item.food_name,
+        price: Number(item.price),
+        rating: 0,
+        image: '/placeholder.svg',
+        category: 'General',
+        quantity: Number(item.qty),
+        transaction_id: item.transaction_id
+      }));
+
+      const cartCount = items.reduce((total, item) => total + item.quantity, 0);
+      setState(prev => ({ ...prev, cart: items, cartCount }));
+    } catch (error) {
+      console.error('Error loading cart:', error);
+      setState(prev => ({ ...prev, cart: [], cartCount: 0 }));
+    }
+  };
+
+  useEffect(() => {
+  const checkAuth = async () => {
+    const token = localStorage.getItem("auth_token");
+    if (!token) return;
+
+    try {
+      const res = await fetch(env.VITE_me_api || "http://localhost:4000/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        const user: User = {
+          id: data.user.cust_id,
+          name: data.user.name,
+          email: data.user.email,
+          mobile: data.user.mobile_no,
+        };
+        setState(prev => ({ ...prev, user }));
+        loadOrders(user.id);
+        loadCart(user.id);
+      } else {
+        localStorage.removeItem("auth_token");
+      }
+    } catch (err) {
+      console.error("Auth check failed:", err);
+      localStorage.removeItem("auth_token");
+    }
+  };
+
+  checkAuth();
+}, []);
+
 
   const setAccountDetails = (details: AccountDetails) => {
     setState(prev => ({ ...prev, accountDetails: details }));
@@ -358,80 +515,146 @@ const signup = async (
   //   }
   // };
 
-  const addToCart = (item: MenuItem) => {
-    setState(prev => {
-      const existingItem = prev.cart.find(cartItem => cartItem.id === item.id);
-      let newCart;
-      
-      if (existingItem) {
-        newCart = prev.cart.map(cartItem =>
-          cartItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        );
-      } else {
-        newCart = [...prev.cart, { ...item, quantity: 1 }];
+  const addToCart = async (item: MenuItem) => {
+    if (!state.user) {
+      console.error("User must be logged in to add items to cart");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${env.VITE_API_URL || 'http://localhost:4000'}/cart/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cust_id: state.user.id,
+          food_id: item.id,
+          qty: 1
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to add item to cart');
       }
-      
-      const cartCount = newCart.reduce((total, cartItem) => total + cartItem.quantity, 0);
-      
-      return { ...prev, cart: newCart, cartCount };
-    });
+
+      // Reload cart from database
+      await loadCart(state.user.id);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    }
   };
 
-  const decreaseQuantity = (itemId: string) => {
-    setState(prev => {
-      const newCart = prev.cart.map(cartItem =>
-        cartItem.id === itemId && cartItem.quantity > 1
-          ? { ...cartItem, quantity: cartItem.quantity - 1 }
-          : cartItem
-      );
-      const cartCount = newCart.reduce((total, cartItem) => total + cartItem.quantity, 0);
-      return { ...prev, cart: newCart, cartCount };
-    });
+  const decreaseQuantity = async (itemId: string) => {
+    if (!state.user) {
+      console.error("User must be logged in to update cart");
+      return;
+    }
+
+    const cartItem = state.cart.find(item => item.id === itemId);
+    if (!cartItem) return;
+
+    const newQuantity = cartItem.quantity - 1;
+    if (newQuantity < 1) {
+      await removeFromCart(itemId);
+      return;
+    }
+
+    try {
+      // Find transaction_id from cart item (we'll need to store it)
+      const response = await fetch(`${env.VITE_API_URL || 'http://localhost:4000'}/cart/update`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction_id: (cartItem as any).transaction_id,
+          food_id: itemId,
+          qty: newQuantity
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update quantity');
+      }
+
+      // Reload cart from database
+      await loadCart(state.user.id);
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+    }
   };
 
-  const removeFromCart = (itemId: string) => {
-    setState(prev => {
-      const newCart = prev.cart.filter(item => item.id !== itemId);
-      const cartCount = newCart.reduce((total, cartItem) => total + cartItem.quantity, 0);
-      return { ...prev, cart: newCart, cartCount };
-    });
+  const removeFromCart = async (itemId: string) => {
+    if (!state.user) {
+      console.error("User must be logged in to remove items from cart");
+      return;
+    }
+
+    const cartItem = state.cart.find(item => item.id === itemId);
+    if (!cartItem) return;
+
+    try {
+      const response = await fetch(`${env.VITE_API_URL || 'http://localhost:4000'}/cart/remove`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction_id: (cartItem as any).transaction_id,
+          food_id: itemId
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to remove item from cart');
+      }
+
+      // Reload cart from database
+      await loadCart(state.user.id);
+    } catch (error) {
+      console.error('Error removing from cart:', error);
+    }
   };
 
   const clearCart = () => {
     setState(prev => ({ ...prev, cart: [], cartCount: 0 }));
   };
 
-  const placeOrder = () => {
-    if (state.cart.length === 0) return;
-    
-    const itemNames = state.cart.map(item => item.name);
+  const placeOrder = async () => {
+    if (state.cart.length === 0 || !state.user) return;
 
-    const baseMinutes = 20;
-    const additionalMinutes = Math.min(state.cartCount * 3, 20);
-    const etaMinutes = baseMinutes + additionalMinutes;
-    const etaTime = new Date(Date.now() + etaMinutes * 60000);
-    const etaString = etaTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
-    const newOrder: Order = {
-      id: Date.now().toString(),
-      orderNumber: `NSU${String(state.orders.length + 1).padStart(3, '0')}`,
-      items: itemNames,
-      itemCount: state.cartCount,
-      price: state.cart.reduce((total, item) => total + (item.price * item.quantity), 0),
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      status: 'placed',
-      eta: etaString
-    };
+    try {
+      // Get transaction_id from first cart item
+      const transaction_id = (state.cart[0] as any).transaction_id;
+      if (!transaction_id) {
+        throw new Error("No transaction ID found");
+      }
 
-    setState(prev => ({
-      ...prev,
-      orders: [newOrder, ...prev.orders],
-      cart: [],
-      cartCount: 0
-    }));
+      const response = await fetch(`${env.VITE_API_URL || 'http://localhost:4000'}/cart/placeOrder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction_id,
+          cust_id: state.user.id,
+          status: 'Confirmed'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to place order');
+      }
+
+      // Clear cart and reload orders
+      setState(prev => ({
+        ...prev,
+        cart: [],
+        cartCount: 0
+      }));
+      
+      await loadOrders(state.user.id);
+    } catch (error) {
+      console.error('Error placing order:', error);
+      throw error;
+    }
   };
 
   return (
