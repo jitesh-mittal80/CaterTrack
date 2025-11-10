@@ -1,10 +1,8 @@
 import db from "../db.js";
 
-// Add item to cart
-// POST /cart/add
 export const addToCart = async (req, res) => {
   try {
-    const { cust_id, food_id, qty = 1 } = req.body; // Default qty = 1
+    const { cust_id, food_id, qty = 1 } = req.body;
 
     if (!cust_id || !food_id) {
       return res.status(400).json({ message: "Missing cust_id or food_id" });
@@ -67,7 +65,6 @@ export const addToCart = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
 
 // GET /cart/:cust_id
 export const getCart = async (req, res) => {
@@ -153,27 +150,6 @@ export const removeFromCart = async (req, res) => {
   }
 };
 
-// //  Clear entire cart by customer ID
-// export const clearCart = async (req, res) => {
-//   const { cust_id } = req.body;
-
-//   try {
-//     const [cart] = await db.query("SELECT transaction_id FROM Cart WHERE cust_id = ?", [cust_id]);
-//     if (cart.length === 0) return res.status(404).json({ message: "No cart found" });
-
-//     const transaction_id = cart[0].transaction_id;
-
-//     await db.query("DELETE FROM Cart_Items WHERE transaction_id = ?", [transaction_id]);
-//     await db.query("DELETE FROM Cart WHERE transaction_id = ?", [transaction_id]);
-
-//     res.status(200).json({ message: "Cart cleared successfully" });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: "Error clearing cart" });
-//   }
-// };
-
-//  Place order using stored procedure
 export const placeOrder = async (req, res) => {
   const { transaction_id, cust_id, status } = req.body;
 
@@ -185,4 +161,3 @@ export const placeOrder = async (req, res) => {
     res.status(500).json({ error: "Error placing order", details: err.sqlMessage });
   }
 };
-

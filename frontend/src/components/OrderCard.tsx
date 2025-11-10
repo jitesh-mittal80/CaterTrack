@@ -24,7 +24,7 @@ const OrderCard = ({ order }: OrderCardProps) => {
       default: return 'bg-muted text-muted-foreground';
     }
   };
-  
+
   return (
     <div className="bg-card border border-border rounded-lg p-4 shadow-md hover:shadow-hover transition-all duration-200">
       <div className="flex justify-between items-start mb-3">
@@ -48,7 +48,7 @@ const OrderCard = ({ order }: OrderCardProps) => {
         <div>
           <p className="font-semibold text-lg text-foreground">₹{order.price.toFixed(0)}</p>
           <p className="text-sm text-muted-foreground">{order.date} at {order.time}</p>
-          {order.eta && (order.status === 'Confirmed' || order.status === 'Pending')&& (
+          {order.eta && (order.status === 'Confirmed' || order.status === 'Pending') && (
             <p className="text-sm text-primary font-medium mt-1">Collect Your Order By: {order.eta}</p>
           )}
         </div>

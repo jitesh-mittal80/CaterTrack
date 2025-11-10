@@ -95,17 +95,14 @@ interface SignupResponse {
 //   };
 // }
 
+
+
 interface AppContextType {
   state: AppState;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   setAccountDetails: (details: AccountDetails) => void;
-// <<<<<<< HEAD
-  // createAccount: (accountData: AccountDetails & { password: string }) => Promise<boolean>;
-// =======
   signup: (name: string, email: string, mobile_no: string, password: string) => Promise<boolean>;
-
-// >>>>>>> a455b9cc1303d49ca012b00b6c815752eecb0f15
   addToCart: (item: MenuItem) => void;
   decreaseQuantity: (itemId: string) => void;
   removeFromCart: (itemId: string) => void;
@@ -161,6 +158,51 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     loadMenu();
   }, []);
 
+// const loadOrders = async (userId: string) => {
+//   try {
+//     const res = await fetch(`${env.VITE_user_history_api}/${userId}`, {
+//       headers: { 'Content-Type': 'application/json' }
+//     });
+//     if (!res.ok) throw new Error('Failed to fetch orders');
+
+//     const data = await res.json();
+//     console.log("Order data fetched:", data);
+
+//   const mappedOrders: Order[] = (Array.isArray(data) ? data : []).map((o: any) => {
+//   const orderDateStr = (o.order_date || o.order_time || '').replace(/\s*at\s*/i, ' ');
+//   const parsedDate = new Date(orderDateStr);
+//   const validDate = !isNaN(parsedDate.getTime());
+
+//   const itemsArray = Array.isArray(o.items)
+//     ? o.items.map((item: string) => item.trim())
+//     : String(o.items || '')
+//         .split(',')
+//         .map((item: string) => item.trim())
+//         .filter(Boolean);
+//   const itemCount = parseInt(o.total_items?.replace(/\D/g, '') || String(itemsArray.length));
+
+//   const price = parseFloat(o.total_price?.replace(/[^\d.]/g, '') || '0');
+
+//   return {
+//     id: String(o.transaction_id || o.order_id),
+//     orderNumber: o.transaction_id || o.cust_id,
+//     items: itemsArray,
+//     itemCount,
+//     price,
+//     date: validDate ? parsedDate.toISOString().split('T')[0] : '',
+//     time: validDate
+//       ? parsedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+//       : '',
+//     status: (o.status?.toLowerCase() || 'placed') as 'placed' | 'preparing' | 'ready' | 'delivered'
+//   };
+// });
+
+//     setState(prev => ({ ...prev, orders: mappedOrders }));
+//   } catch (err) {
+//     console.error('Failed to load orders:', err);
+//   }
+// };
+
 const loadOrders = async (userId: string) => {
   try {
     const res = await fetch(`${env.VITE_user_history_api}/${userId}`, {
@@ -171,38 +213,62 @@ const loadOrders = async (userId: string) => {
     const data = await res.json();
     console.log("Order data fetched:", data);
 
-   const mappedOrders: Order[] = (Array.isArray(data) ? data : []).map((o: any) => {
+    const mappedOrders: Order[] = (Array.isArray(data) ? data : []).map((o: any) => {
 
-  const orderDateStr = (o.order_date || o.order_time || '').replace(/\s*at\s*/i, ' ');
-  const parsedDate = new Date(orderDateStr);
-  const validDate = !isNaN(parsedDate.getTime());
-
-  const itemsArray = Array.isArray(o.items)
-    ? o.items.map((item: string) => item.trim())
-    : String(o.items || '')
-        .split(',')
-        .map((item: string) => item.trim())
-        .filter(Boolean);
-  const itemCount = parseInt(o.total_items?.replace(/\D/g, '') || String(itemsArray.length));
-
-  const price = parseFloat(o.total_price?.replace(/[^\d.]/g, '') || '0');
-
-  return {
-    id: String(o.transaction_id || o.order_id),
-    orderNumber: o.transaction_id || o.cust_id,
-    items: itemsArray,
-    itemCount,
-    price,
-    date: validDate ? parsedDate.toISOString().split('T')[0] : '',
-    time: validDate
-      ? parsedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      : '',
-    status: (o.status?.toLowerCase() || 'placed') as 'placed' | 'preparing' | 'ready' | 'delivered'
-  };
-});
+      const orderDateStr = (o.order_date || o.order_time || '').replace(/\s*at\s*/i, ' ');
+      const parsedDate = new Date(orderDateStr);
+      const validDate = !isNaN(parsedDate.getTime());
+  
+      const itemsArray = Array.isArray(o.items)
+        ? o.items.map((item: string) => item.trim())
+        : String(o.items || '')
+            .split(',')
+            .map((item: string) => item.trim())
+            .filter(Boolean);
+  
+      const itemCount = parseInt(o.total_items?.replace(/\D/g, '') || String(itemsArray.length));
+      const price = parseFloat(o.total_price?.replace(/[^\d.]/g, '') || '0');
+  
+      // Normalize to the 4 allowed statuses; default older/unknown to Delivered
+      const raw = String(o.status || '').toLowerCase();
+      const status: Order['status'] =
+        raw === 'pending' ? 'Pending' :
+        raw === 'confirmed' ? 'Confirmed' :
+        raw === 'delivered' ? 'Delivered' :
+        raw === 'cancelled' ? 'Cancelled' :
+        'Delivered';
+  
+      // ETA only for newly placed orders (recent Confirmed)
+      let eta: string | undefined;
+      if (status === 'Confirmed') {
+        const minutesSince = validDate ? (Date.now() - parsedDate.getTime()) / 60000 : 0;
+        if (!validDate || minutesSince <= 120) { // treat as "new" within ~2 hours
+          const baseMinutes = 20;
+          const additionalMinutes = Math.min(itemCount * 3, 20);
+          const etaMinutes = baseMinutes + additionalMinutes;
+          const baseTime = validDate ? parsedDate : new Date();
+          const etaTime = new Date(baseTime.getTime() + etaMinutes * 60000);
+          eta = etaTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+      }
+  
+      return {
+        id: String(o.transaction_id || o.order_id),
+        orderNumber: o.transaction_id || o.cust_id,
+        items: itemsArray,
+        itemCount,
+        price,
+        date: validDate ? parsedDate.toISOString().split('T')[0] : '',
+        time: validDate
+          ? parsedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : '',
+        status,
+        eta,
+      };
+    });
 
     setState(prev => ({ ...prev, orders: mappedOrders }));
-  } catch (err) {
+ } catch (err) {
     console.error('Failed to load orders:', err);
   }
 };
@@ -252,6 +318,49 @@ const fetchUserOrders = async (userId: string) => {
 //   }
 // };
 
+
+// const login = async (email: string, password: string): Promise<boolean> => {
+//   try {
+//     const response = await fetch(env.VITE_login_api || "http://localhost:4000/auth/signin", {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ email, password }),
+//     });
+
+//     const data = await response.json();
+
+//     if (!response.ok || !data.token) throw new Error(data.message || "Login failed");
+
+//     // ✅ Save JWT token in localStorage
+//     localStorage.setItem("auth_token", data.token);
+
+//     // ✅ Verify token with /auth/me (optional but ensures clean user data)
+//     const verifyRes = await fetch(env.VITE_me_api || "http://localhost:4000/auth/me", {
+//       headers: { Authorization: `Bearer ${data.token}` },
+//     });
+
+//     const verifyData = await verifyRes.json();
+
+//     if (verifyRes.ok && verifyData.success) {
+//       const user: User = {
+//         id: verifyData.user.cust_id,
+//         name: verifyData.user.name,
+//         email: verifyData.user.email,
+//       };
+
+//       setState((prev) => ({ ...prev, user }));
+//       loadOrders(user.id);
+//       loadCart(user.id);
+//       return true;
+//     } else {
+//       throw new Error("Failed to verify user token");
+//     }
+//   } catch (error) {
+//     console.error("Login error:", error);
+//     return false;
+//   }
+// };
+
 const login = async (email: string, password: string): Promise<boolean> => {
   try {
     const response = await fetch(env.VITE_login_api || "http://localhost:4000/auth/signin", {
@@ -261,38 +370,44 @@ const login = async (email: string, password: string): Promise<boolean> => {
     });
 
     const data = await response.json();
-
     if (!response.ok || !data.token) throw new Error(data.message || "Login failed");
 
-    // ✅ Save JWT token in localStorage
     localStorage.setItem("auth_token", data.token);
 
-    // ✅ Verify token with /auth/me (optional but ensures clean user data)
     const verifyRes = await fetch(env.VITE_me_api || "http://localhost:4000/auth/me", {
       headers: { Authorization: `Bearer ${data.token}` },
     });
 
     const verifyData = await verifyRes.json();
+    if (!verifyRes.ok || !verifyData.success) throw new Error("Failed to verify user");
 
-    if (verifyRes.ok && verifyData.success) {
-      const user: User = {
-        id: verifyData.user.cust_id,
-        name: verifyData.user.name,
-        email: verifyData.user.email,
-      };
+    const user: User = {
+      id: verifyData.user.cust_id,
+      name: verifyData.user.name,
+      email: verifyData.user.email,
+      mobile: verifyData.user.mobile_no,
+    };
 
-      setState((prev) => ({ ...prev, user }));
-      loadOrders(user.id);
-      loadCart(user.id);
-      return true;
-    } else {
-      throw new Error("Failed to verify user token");
-    }
+    // 🧹 Reset app state before loading new data
+    setState({
+      user,
+      accountDetails: null,
+      orders: [],
+      menuItems: state.menuItems, // keep cached
+      cart: [],
+      cartCount: 0,
+    });
+
+    await loadOrders(user.id);
+    await loadCart(user.id);
+
+    return true;
   } catch (error) {
     console.error("Login error:", error);
     return false;
   }
 };
+
 
 
 
@@ -361,6 +476,50 @@ const login = async (email: string, password: string): Promise<boolean> => {
 //   }
 // };
 
+// const signup = async (
+//   name: string,
+//   email: string,
+//   mobile_no: string,
+//   password: string
+// ): Promise<boolean> => {
+//   try {
+//     const response = await fetch(env.VITE_signup_api || 'http://localhost:4000/auth/signup', {
+//       method: 'POST',
+//       headers: { 'Content-Type': 'application/json' },
+//       body: JSON.stringify({ name, email, mobile_no, password }),
+//     });
+
+//     const data: SignupResponse = await response.json();
+
+//     if (!data.success) {
+//       throw new Error(data.message || 'Account creation failed');
+//     }
+
+//     // 🧠 Store JWT token in localStorage (for future auto-login)
+//     if (data.token) {
+//       localStorage.setItem('auth_token', data.token);
+//     }
+
+//     // 🧍‍♂️ Set user state immediately
+//     if (data.user) {
+//       const user: User = {
+//         id: data.user.cust_id,
+//         name: data.user.name,
+//         email: data.user.email,
+//         mobile: data.user.mobile_no,
+//       };
+//       setState(prev => ({ ...prev, user }));
+//       if (data.user) {
+//         loadCart(data.user.cust_id);
+//       }
+//     }
+
+//     return true;
+//   } catch (error) {
+//     console.error('Signup error:', error);
+//     return false;
+//   }
+// };
 const signup = async (
   name: string,
   email: string,
@@ -368,40 +527,40 @@ const signup = async (
   password: string
 ): Promise<boolean> => {
   try {
-    const response = await fetch(env.VITE_signup_api || 'http://localhost:4000/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch(env.VITE_signup_api || "http://localhost:4000/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, mobile_no, password }),
     });
 
     const data: SignupResponse = await response.json();
+    if (!data.success) throw new Error(data.message || "Signup failed");
 
-    if (!data.success) {
-      throw new Error(data.message || 'Account creation failed');
-    }
+    if (data.token) localStorage.setItem("auth_token", data.token);
 
-    // 🧠 Store JWT token in localStorage (for future auto-login)
-    if (data.token) {
-      localStorage.setItem('auth_token', data.token);
-    }
+    const user: User = {
+      id: data.user.cust_id,
+      name: data.user.name,
+      email: data.user.email,
+      mobile: data.user.mobile_no,
+    };
 
-    // 🧍‍♂️ Set user state immediately
-    if (data.user) {
-      const user: User = {
-        id: data.user.cust_id,
-        name: data.user.name,
-        email: data.user.email,
-        mobile: data.user.mobile_no,
-      };
-      setState(prev => ({ ...prev, user }));
-      if (data.user) {
-        loadCart(data.user.cust_id);
-      }
-    }
+    // 🧹 Reset previous session data
+    setState({
+      user,
+      accountDetails: null,
+      orders: [],
+      menuItems: state.menuItems, // keep menu cached
+      cart: [],
+      cartCount: 0,
+    });
+
+    await loadOrders(user.id);
+    await loadCart(user.id);
 
     return true;
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error("Signup error:", error);
     return false;
   }
 };
@@ -440,10 +599,48 @@ const signup = async (
     }
   };
 
-  useEffect(() => {
+//   useEffect(() => {
+//   const checkAuth = async () => {
+//     const token = localStorage.getItem("auth_token");
+//     if (!token) return;
+
+//     try {
+//       const res = await fetch(env.VITE_me_api || "http://localhost:4000/auth/me", {
+//         headers: { Authorization: `Bearer ${token}` },
+//       });
+//       const data = await res.json();
+
+//       if (res.ok && data.success) {
+//         const user: User = {
+//           id: data.user.cust_id,
+//           name: data.user.name,
+//           email: data.user.email,
+//           mobile: data.user.mobile_no,
+//         };
+//         setState(prev => ({ ...prev, user }));
+//         loadOrders(user.id);
+//         loadCart(user.id);
+//       } else {
+//         localStorage.removeItem("auth_token");
+//       }
+//     } catch (err) {
+//       console.error("Auth check failed:", err);
+//       localStorage.removeItem("auth_token");
+//     }
+//   };
+
+//   checkAuth();
+// }, []);
+const [authLoading, setAuthLoading] = useState(true);
+const [isLoading, setIsLoading] = useState(true);
+
+useEffect(() => {
   const checkAuth = async () => {
     const token = localStorage.getItem("auth_token");
-    if (!token) return;
+    if (!token) {
+      setAuthLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch(env.VITE_me_api || "http://localhost:4000/auth/me", {
@@ -459,14 +656,15 @@ const signup = async (
           mobile: data.user.mobile_no,
         };
         setState(prev => ({ ...prev, user }));
-        loadOrders(user.id);
-        loadCart(user.id);
+        await Promise.all([loadOrders(user.id), loadCart(user.id)]);
       } else {
         localStorage.removeItem("auth_token");
       }
     } catch (err) {
       console.error("Auth check failed:", err);
       localStorage.removeItem("auth_token");
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -657,6 +855,7 @@ const signup = async (
     }
   };
 
+  if (authLoading) return null;
   return (
     <AppContext.Provider value={{
       state,
